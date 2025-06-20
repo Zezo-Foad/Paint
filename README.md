@@ -1,145 +1,198 @@
 
----
+# CSS Artisan Painter Engine
 
-🎨 Paint.css API – Function Demonstration
+A lightweight, powerful CSS manipulation engine that provides dynamic CSS injection and management capabilities for modern web applications.
 
-> Paint.css is a powerful native CSS injection and simulation engine. Below is a full hands-on guide to using all built-in functions — no internal code, just pure usage examples.
+## 🚀 Features
 
+- **Dynamic CSS Injection**: Programmatically insert CSS rules at runtime
+- **Pseudo-class Support**: Easy handling of CSS pseudo-classes with proxy-based API
+- **CSS Rule Retrieval**: Query and retrieve existing CSS rules by selector
+- **Root Variable Management**: Convenient CSS custom property (CSS variables) management
+- **Animation Simulation**: Built-in CSS animation simulation capabilities
+- **Fallback Support**: Automatic fallback for environments without CSSStyleSheet support
+- **Zero Dependencies**: Pure JavaScript implementation
 
+## 📦 Installation
 
+Simply include the script in your HTML file:
 
----
+```html
+<script src="path/to/css-painter-engine.js"></script>
+```
 
-🔧 1. Paint(selector, cssText)
+The engine automatically initializes and creates a global `Paint` function.
 
-Injects base styles into any selector.
+## 🔧 API Reference
 
-Paint(".demo", "background: yellow; color: black; padding: 10px;");
+### Core Functions
 
-✅ Effect:
-Applies background and text styles to elements with .demo.
+#### `Paint(selector, cssText)`
 
+Inject CSS rules dynamically and get pseudo-class support.
 
----
+```javascript
+// Basic usage
+Paint('.my-element', 'color: red; font-size: 16px;');
 
-✨ 2. .hover(styles) / .focus(styles) / other pseudo-classes
+// With pseudo-classes
+Paint('.button', 'background: blue; color: white;')
+  .hover('background: darkblue;')
+  .active('transform: scale(0.95);');
+```
 
-Adds pseudo-class styles dynamically.
+#### `Paint.getCSSObj(selector, options)`
 
-Paint(".demo", "border-radius: 6px;").hover("background: orange;");
-Paint(".demo").focus("outline: 2px solid blue;");
+Retrieve CSS rule objects by selector.
 
-✅ Effect:
-When .demo is hovered or focused, the new styles apply.
+```javascript
+// Get single rule object
+const ruleObj = Paint.getCSSObj('.my-element');
 
+// Get multiple rules
+const rules = Paint.getCSSObj('.my-element', { multiple: true });
 
----
+// Filter by pseudo-classes
+const pseudoOnly = Paint.getCSSObj('.button', { pusedo: 'only' });
+const noPseudo = Paint.getCSSObj('.button', { pusedo: false });
+```
 
-📋 3. Paint.getCSS(selector)
+#### `Paint.getCSS(selector, options)`
 
-Retrieves the raw CSS text applied to a selector.
+Retrieve CSS text by selector.
 
-console.log(Paint.getCSS(".demo"));
+```javascript
+// Get CSS text
+const cssText = Paint.getCSS('.my-element');
 
-🖨️ Example Output:
+// Get multiple CSS texts
+const cssTexts = Paint.getCSS('.my-element', { multiple: true });
+```
 
-background: yellow; color: black; padding: 10px; border-radius: 6px;
+### CSS Variables Management
 
+#### `Paint.root`
 
----
+Manage CSS custom properties on the `:root` element.
 
-🧩 4. Paint.getCSSObj(selector)
+```javascript
+// Set a CSS variable
+Paint.root.set('--primary-color', '#3498db');
 
-Returns a live CSSStyleDeclaration object (read/write).
+// Get a CSS variable
+const primaryColor = Paint.root.get('--primary-color');
 
-const style = Paint.getCSSObj(".demo");
-console.log(style.getPropertyValue("background"));
+// Delete a CSS variable
+Paint.root.delete('--primary-color');
+```
 
-🖨️ Output:
+### Animation Simulation
 
-yellow
+#### `Paint.simulate(config)`
 
-You can also modify or remove styles:
+Create CSS animation simulations.
 
-style.setProperty("background", "blue");
-style.removeProperty("padding");
-
-
----
-
-🎭 5. Paint.simulate({ selector, pusedo, times, timeout })
-
-Simulates a pseudo-class style like :hover multiple times.
-
+```javascript
 Paint.simulate({
-  selector: ".demo",
-  pusedo: ":hover",
-  times: 3,
+  selector: '.animate-element',
+  pusedo: ':hover',
+  times: 5,
   timeout: 500
 });
+```
 
-✅ Effect:
-Paint temporarily applies the :hover style 3 times every 500ms.
+## 💡 Usage Examples
 
+### Dynamic Theme Switching
+
+```javascript
+// Set up a dark theme
+Paint.root.set('--bg-color', '#2c3e50');
+Paint.root.set('--text-color', '#ecf0f1');
+Paint('body', `
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: all 0.3s ease;
+`);
+```
+
+### Interactive Button Styles
+
+```javascript
+Paint('.btn', `
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+`)
+.hover('transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2);')
+.active('transform: translateY(0);')
+.focus('outline: 2px solid #3498db;');
+```
+
+### Responsive Design
+
+```javascript
+// Mobile-first approach
+Paint('.container', 'width: 100%; padding: 1rem;');
+
+// Tablet styles
+Paint('@media (min-width: 768px)', `
+  .container {
+    max-width: 750px;
+    margin: 0 auto;
+  }
+`);
+
+// Desktop styles
+Paint('@media (min-width: 1024px)', `
+  .container {
+    max-width: 1200px;
+    padding: 2rem;
+  }
+`);
+```
+
+## 🛠️ Browser Compatibility
+
+The engine includes automatic fallback detection for environments that don't support:
+- `CSSStyleSheet` constructor
+- `document.adoptedStyleSheets`
+
+When these features are unavailable, the engine automatically creates a fallback using traditional `<style>` elements.
+
+## ⚡ Performance Considerations
+
+- Rules are inserted at the end of stylesheets to maintain specificity
+- Minimal DOM manipulation for better performance
+- Efficient selector matching using regular expressions
+- Automatic cleanup and management of adopted stylesheets
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Related Projects
+
+- [Styled Components](https://styled-components.com/) - CSS-in-JS library
+- [Emotion](https://emotion.sh/) - CSS-in-JS library with great performance
+- [JSS](https://cssinjs.org/) - Authoring tool for CSS
+
+## 📚 Additional Resources
+
+- [MDN CSS Reference](https://developer.mozilla.org/en-US/docs/Web/CSS)
+- [Can I Use - CSSStyleSheet](https://caniuse.com/mdn-api_cssstylesheet)
+- [Web Components and Shadow DOM](https://developer.mozilla.org/en-US/docs/Web/Web_Components)
 
 ---
 
-🌱 6. Paint.root.set(variable, value)
-
-Sets a CSS variable in the :root.
-
-Paint.root.set("--main-color", "#0f0");
-
-✅ Effect:
-:root { --main-color: #0f0; }
-
-
----
-
-🔍 7. Paint.root.get(variable)
-
-Gets the value of a CSS variable.
-
-const color = Paint.root.get("--main-color");
-console.log(color); // #0f0
-
-
----
-
-🧹 8. Paint.root.delete(variable)
-
-Removes a CSS variable from :root.
-
-Paint.root.delete("--main-color");
-
-✅ Effect:
-Removes the variable entirely.
-
-
----
-
-🧠 Summary Table
-
-Function	Description
-
-Paint()	Injects base CSS
-.hover() / .focus()	Injects pseudo-class CSS
-Paint.getCSS()	Gets full style string for a selector
-Paint.getCSSObj()	Gets the live editable style object
-Paint.simulate()	Temporarily simulates a pseudo-class style
-Paint.root.set()	Sets a CSS custom property
-Paint.root.get()	Retrieves the value of a CSS variable
-Paint.root.delete()	Deletes a CSS variable from :root
-
-
-
----
-
-✅ Final Thoughts
-
-> With Paint.css, you don’t just inject CSS — you control it, simulate it, and build dynamic styling systems with no framework or preprocessor needed.
-
-
-
-If you'd like, I can prepare a sample HTML playground to try all this live. Just say the word!
-
+Made with ❤️ by the CSS Artisan Painter Engine team
