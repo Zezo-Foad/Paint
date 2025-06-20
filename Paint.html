@@ -1,0 +1,99 @@
+<script src="Paint.js" type="text/javascript" charset="utf-8"></script>
+<style type="text/css" media="all">
+	body{
+		background-color: White;
+	}
+	.btn{
+		background: red;
+		height: 150px;
+		width: 150px;
+		border-radius: 5px;
+		margin-left: 0px;
+		border: none;
+		transition: 0.8s;
+	}
+	.btn:hover{
+		background: var(--bg);
+		border-radius: 50px;
+		font-size: 30px;
+	}
+	:root{
+		--bg:#00ff00;
+	}
+	:root{
+		--bg-2:#000000;
+	}
+/*
+@keyframes example {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(10px);
+  }
+}
+
+.element {
+  animation-name: example;
+  animation-duration: 1s;
+  animation-delay: 2s;
+  animation-fill-mode: forwards;
+  animation-timing-function: ease-in-out;
+}
+*/
+</style>
+<button class="btn">Hi</button>
+<button class="btn">Hi-2</button>
+<div class="element">
+	Hi2
+</div>
+<div class="div-1">
+	<div class="div-2">
+		<h3>Hi H3</h3>
+	</div>
+</div>
+<script>
+Paint(".div-1 > .div-2 > h3","background:red;color:Gold;");
+Paint(".div-1 > .div-2 > h3").active("background:gold;color:red;");
+console.log(Paint.getCSS(".div-1 > .div-2 > h3"));
+console.log(Paint.getCSS(".div-1 > .div-2 > h3:active"));
+// pusedo simulation
+Paint.simulate({
+	selector: ".btn",
+	pusedo: ":hover",
+	timeout: 1000, // time in ms
+	times: 3
+});
+
+// CSSOM Multiplication
+
+console.log(Paint.getCSS(".btn"));
+console.log(Paint.getCSS(".btn:hover"));
+console.log(Paint.getCSS(".btn",{
+	pusedo:true,
+	multiple:true
+}));
+console.log(Paint.getCSS(".btn:hover",{
+	pusedo:true,
+	multiple:true
+}));
+console.log(Paint.getCSSObj(".btn",{
+	pusedo:true,
+	multiple:true
+}));
+console.log(Paint.getCSSObj(".btn:hover",{
+	pusedo:true,
+	multiple:true
+}));
+
+// :root variables management
+
+Paint.root.set("--main-color","#00ff00");
+Paint.root.set("--secondary-color","#000000");
+Paint.root.set("--3-color","#0000ff");
+console.log(Paint.root.get("--secondary-color"));
+console.log(Paint.root.get("--main-color"));
+console.log(Paint.root.delete("--3-color"));
+console.log(Paint.getCSSObj(":root"));
+console.log(Paint.getCSS(":root"));
+</script>
