@@ -1,7 +1,7 @@
 
-# CSS Artisan Painter Engine
+# Paint a lightweight CSS-in-JS framework
 
-A lightweight, powerful CSS manipulation engine that provides dynamic CSS injection and management capabilities for modern web applications.
+Paint is A lightweight CSS-in-JS framework , provides a powerful CSS manipulation engine that provides dynamic CSS injection and management capabilities for modern web applications.
 
 ## 🚀 Features
 
