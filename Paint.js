@@ -1,11 +1,7 @@
 "use strict";
 window.CSSInsertEngine = new CSSStyleSheet();
 window.CSSEngine = document.styleSheets;
-/*
-window.CSSStyleSheet = undefined;
-document.adoptedStyleSheet = undefined;
-*/
-// fallout simulation 👆
+
 if (typeof window.CSSStyleSheet !== "function" || typeof document.adoptedStyleSheets !== "object") {
   const style = document.createElement("style");
   style.id="Paint-Emergency-CSSEngine";  
@@ -17,9 +13,17 @@ if (typeof window.CSSStyleSheet !== "function" || typeof document.adoptedStyleSh
 function Paint(selector,cssText) {
 	
 var insertOne = function (CSSCode) {
-CSSInsertEngine.insertRule(CSSCode,CSSInsertEngine.length);
-document.adoptedStyleSheets=[...document.adoptedStyleSheets,CSSInsertEngine];
-	};
+  if (CSSInsertEngine && CSSInsertEngine.insertRule) {
+    CSSInsertEngine.insertRule(CSSCode, CSSInsertEngine.cssRules.length);
+    if (!document.adoptedStyleSheets.includes(CSSInsertEngine)) {
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, CSSInsertEngine];
+    }
+    const alreadyInEngine = Array.from(CSSEngine).includes(CSSInsertEngine);
+    if (!alreadyInEngine) {
+      CSSEngine = [...CSSEngine, CSSInsertEngine];
+    }
+  }
+};
 	
 const CSSCode = `${selector}{
   ${cssText}
@@ -47,7 +51,15 @@ Paint.getCSSObj = function (selector, options = {}) {
 
 	const regex = new RegExp(selector.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), "g");
 	let results = [];
-
+if(options.Create==true) {
+  	if(!Paint.exists(selector)){
+  		if(options.pusedo){
+  			Paint(selector+options.pusedo,"");
+  		}else{
+  			Paint(selector,"");
+  		}
+  	}
+  }
 	for (const CSSs of CSSEngine) {
 		for (const Rules of CSSs.cssRules) {
 			if (!Rules.selectorText) continue;
@@ -57,8 +69,6 @@ Paint.getCSSObj = function (selector, options = {}) {
 			const matches = regex.test(selText);
 
 			if (!matches) continue;
-
-			// فلترة حسب الـ pusedo
 			if (pusedo === "only" && !hasPseudo) continue;
 			if (pusedo === false && hasPseudo) continue;
 
@@ -66,13 +76,12 @@ Paint.getCSSObj = function (selector, options = {}) {
 			results.push(Rules);
 		}
 	}
-
-	return multiple ? results : `Theres no matches for "${selector}" !`;
+	return multiple ? results : false;
 };
 Paint.getCSS = function (selector, options = {}) {
 	const {
 		multiple = false,
-		pusedo // true | false | "only"
+		pusedo
 	} = options;
 
 	const regex = new RegExp(selector.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), "g");
@@ -96,27 +105,65 @@ Paint.getCSS = function (selector, options = {}) {
 		}
 	}
 
-	return multiple ? results : {
-		error:`Theres no matches for "${selector}" !`
-	};
+	return multiple ? results : false;
 };
-Paint.simulate = function (obj) {
-window.Fut = Paint.getCSSObj(obj.selector + obj.pusedo).cssText;
-window.Prev = Paint.getCSSObj(obj.selector).cssText;
+let simulateState = {
+  i: 0,
+  running: false,
+  intervalIDs: [],
+  obj: null,
+  history:{
+  	past:"",
+  	future:""
+  },
+  Applyed:true,
+  current:0
+};
+Paint.simulate = function(obj) {
+	if(simulateState.history.past==""){
+		simulateState.history.past = Paint.getCSS(obj.selector);
+	}
+	if(simulateState.history.future==""){
+		simulateState.history.past = Paint.getCSS(obj.selector+obj.pusedo);
+	}
+	simulateState.obj=obj;
 
-  function Repeat(t, tout) {
-  for (let i = 0; i < t; i++) {
-    setTimeout(() => {
-      Paint.getCSSObj(obj.selector).cssText+=Fut;
-    }, i * tout * 2); // Apply pseudo
-
-    setTimeout(() => {
-    	Paint.getCSSObj(obj.selector).cssText-=Fut;
-      Paint.getCSSObj(obj.selector).cssText=Prev;
-    }, i * tout * 2 + tout); // Revert
-  }
+function repeat() {
+  setTimeout(() => {
+    Paint.forceState({
+  	selector:obj.selector,
+	  pusedo:obj.pusedo
+    });
+ if (simulateState.Applyed == true && simulateState.current < obj.times) {
+  	setTimeout(function() {
+   	Paint.forceState({
+  	selector:obj.selector,
+	  pusedo:obj.pusedo
+    });
+    		repeat();
+    	},obj.timeout);
+    }else {
+   	Paint.forceState({
+  	selector:obj.selector,
+	  pusedo:obj.pusedo
+    });
+    Paint.getCSSObj(obj.selector).cssText = simulateState.history.past;
+    simulateState.Applyed = false;
+    }
+  }, obj.timeout);
+  simulateState.current++;
 }
-  Repeat(obj.times, obj.timeout);
+
+repeat();
+	};
+Paint.simulate.continue = function (){
+	simulateState.Applyed = true;
+	Paint.simulate(simulateState.obj);
+};
+Paint.simulate.pause = function (){
+	simulateState.Applyed = false;
+	console.log(simulateState.obj);
+	console.log(simulateState.obj.selector);
 };
 Paint.root = {
   set: function (variable, value) {
@@ -129,4 +176,98 @@ Paint.root = {
   	Paint.getCSSObj(":root").removeProperty(variable);
   }
 };
-// By Zyad & GPT 🫂
+Paint.fail = function (){
+
+window.CSSStyleSheet = undefined;
+document.adoptedStyleSheet = undefined;
+};
+Paint.exists = function (selector) {
+  const escapedSelector = selector.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  const regex = new RegExp(`^${escapedSelector}$`);
+
+  for (const CSSs of CSSEngine) {
+    let rules;
+    try {
+      rules = CSSs.cssRules;
+    } catch {
+      continue;
+    }
+
+    for (const rule of rules) {
+      if (rule.selectorText && regex.test(rule.selectorText.trim())) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+Paint.getComputed = function (selector){
+	return window.getComputedStyle(document.querySelector(selector));
+};
+
+const Store = {
+    past: "",
+    future: "",
+    Applyed: false,
+    originalStyles: {}
+};
+
+Paint.forceState = function (obj) {
+  const selector = obj.selector;
+  const pseudo = obj.pusedo;
+
+  const cssObj = Paint.getCSSObj(selector + pseudo);
+  if (!cssObj) {
+    console.warn("Invalid CSS object for selector:", selector);
+    return;
+  }
+
+  const Fut = cssObj.cssText;
+  const Prev = Paint.getCSSObj(selector).cssText;
+  
+  if (!Store.Applyed) {
+    Store.Applyed = true;
+
+    if (Store.past === "") {
+      Store.past = Paint.getCSSObj(selector).cssText;
+    }
+    if (Store.future === "") {
+      Store.future = cssObj.cssText;
+    }
+    Store.originalStyles[selector] = Paint.getCSSObj(selector).cssText;
+    Paint.getCSSObj(selector).cssText += Fut;
+  } else {
+    Store.Applyed = false;
+    if (Store.originalStyles[selector]) {
+      Paint.getCSSObj(selector).cssText = Store.originalStyles[selector];
+    }
+    Paint.getCSSObj(selector).cssText = Paint.getCSSObj(selector).cssText.replace(Fut, "");
+  }
+};
+
+Paint.getSheet = function (url){
+	let final = {};
+	document.styleSheets.forEach((sht)=>{
+		if(String(sht.href).includes(url)){
+		  final = sht;
+		}
+	});
+	return final.cssRules;
+};
+Paint.addRule = function (Rule) {
+var insertOne = function (CSSCode) {
+  if (CSSInsertEngine && CSSInsertEngine.insertRule) {
+    CSSInsertEngine.insertRule(CSSCode, CSSInsertEngine.cssRules.length);
+    if (!document.adoptedStyleSheets.includes(CSSInsertEngine)) {
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, CSSInsertEngine];
+    }
+    const alreadyInEngine = Array.from(CSSEngine).includes(CSSInsertEngine);
+    if (!alreadyInEngine) {
+      CSSEngine = [...CSSEngine, CSSInsertEngine];
+    }
+  }
+};
+insertOne(Rule);
+};
+window.Paint=Paint;
