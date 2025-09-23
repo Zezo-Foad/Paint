@@ -72,12 +72,11 @@ insertOne(CSSCode);
     }  
   });
 }
-// تحسين addRule بحيث يدعم CSSMediaRule أو CSSStyleSheet
 Paint.addRule = function(target, ruleText) {
     if (!target) target = CSSInsertEngine; // افتراضيًا الشيت الحالي
 
     // لو target هو CSSMediaRule
-    if (target instanceof CSSMediaRule) {
+    if (target instanceof CSSMediaRule || CSSContainerRule) {
         target.insertRule(ruleText, target.cssRules.length);
     } 
     // لو target هو CSSStyleSheet
@@ -88,8 +87,6 @@ Paint.addRule = function(target, ruleText) {
         console.warn("Paint.addRule: Invalid target for insertRule", target);
     }
 };
-
-// تحسين getCSSObj مع دعم {Create:true}
 Paint.getCSSObj = function(selector, options = {}) {
     const { multiple = false, pusedo, Create = false } = options;
     const regex = new RegExp(selector.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), "g");
@@ -216,7 +213,6 @@ Paint.getSheet = function (url){
 	});
 	return final.cssRules;
 };
-
 Paint.createSheet = function(CSSCode) {
     if (typeof CSSStyleSheet === "function" && CSSStyleSheet.prototype.replaceSync) {
         try {
@@ -235,16 +231,129 @@ Paint.createSheet = function(CSSCode) {
 	return DOM.querySelector("style").sheet;
   }
 };
-
 Paint.setSheet = function(sheet) {
     window.CSSInsertEngine = sheet;
     window.CSSEngine = document.styleSheets;
 };
-
 Paint.insertMany = async function(CSSCode) {
 	Paint.createSheet(CSSCode).cssRules.forEach((rule,index)=>{
 		Paint.addRule(CSSInsertEngine,rule.cssText);
 	});
+};
+Paint.findQuire = function(condition) {
+  let query = String(condition).replace(/[()\s]/g,"");
+  let XyRule = null;
+
+  Array.from(document.styleSheets).forEach(sheet => {
+    Array.from(sheet.cssRules).forEach(rule => {
+      // شوف لو rule فيه containerName أو conditionText
+      let q = rule.containerName ?? rule.conditionText ?? null;
+      if (!q) return;
+
+      let ruleCond = String(q).replace(/[()\s]/g,"");
+      if(ruleCond === query) XyRule = rule;
+    });
+  });
+
+  return XyRule;
+};
+Paint.Proxy = {
+  watch: function(obj) {
+                const log = (message) => {
+                    obj.onChange(message);
+                };
+
+                try {
+                    Array.from(document.styleSheets).forEach((sheet, sheetIndex) => {
+                        try {
+                            // Skip cross-origin sheets
+                            const rules = sheet.cssRules;
+                            
+                            // Create a proxy for the stylesheet itself
+                            const proxiedSheet = new Proxy(sheet, {
+                                get(target, prop) {
+                                    if (prop === 'insertRule') {
+                                        return function(rule, index) {
+                                           // log(`📝 Inserting rule: ${rule} at index ${index}`);
+                                            return target.insertRule(rule, index);
+                                        };
+                                    }
+                                    if (prop === 'deleteRule') {
+                                        return function(index) {
+                                     //       log(`🗑️ Deleting rule at index ${index}`);
+                                            return target.deleteRule(index);
+                                        };
+                                    }
+                                    return target[prop];
+                                }
+                            });
+
+                            // Monitor individual rules
+                            Array.from(rules).forEach((rule, ruleIndex) => {
+                                if (rule.style) {
+                                    // Create proxy for CSSStyleDeclaration
+                                    const originalStyle = rule.style;
+                                    const proxiedStyle = new Proxy(originalStyle, {
+                                        set(target, prop, value) {
+                                            if (typeof prop === 'string' && prop !== 'length') {
+                                                log(rules[ruleIndex]);
+                                            }
+                                            target[prop] = value;
+                                            return true;
+                                        },
+                                        get(target, prop) {
+                                            if (prop === 'setProperty') {
+                                                return function(property, value, priority) {
+                                                    //log(`🎨 setProperty: ${property} = ${value} ${priority || ''}`);
+                                                    return target.setProperty(property, value, priority);
+                                                };
+                                            }
+                                            if (prop === 'removeProperty') {
+                                                return function(property) {
+                                                    log(`🗑️ removeProperty: ${property}`);
+                                                    return target.removeProperty(property);
+                                                };
+                                            }
+                                            return target[prop];
+                                        }
+                                    });
+                                    
+                                    // Replace the style object (this is tricky and might not work in all browsers)
+                                    try {
+                                        Object.defineProperty(rule, 'style', {
+                                            value: proxiedStyle,
+                                            writable: false
+                                        });
+                                    } catch (e) {
+                                       // log(`⚠️ Could not proxy rule ${ruleIndex} style`);
+                                    }
+                                }
+                            });
+                            
+                           // log(`✅ Watching stylesheet ${sheetIndex} with ${rules.length} rules`);
+                            
+                        } catch (e) {
+        //                    log(`⚠️ Cannot access stylesheet ${sheetIndex}: ${e.message}`);
+                        }
+                    });
+
+                    // Also monitor dynamic style changes via MutationObserver
+                    
+
+                    this.watchers.add(observer);
+//                    log('🔍 CSS Watcher initialized!');
+                    
+                } catch (error) {
+  //                  log(`❌ Error initializing watcher: ${error.message}`);
+                }
+            },
+            unwatch: function() {
+                this.watchers.forEach(watcher => {
+                    if (watcher.disconnect) watcher.disconnect();
+                });
+                this.watchers.clear();
+                console.log('🛑 CSS Watcher stopped');
+            }
 };
 Paint.restore = function (){
 window.CSSInsertEngine = sheetX;
