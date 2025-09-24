@@ -310,131 +310,33 @@ Paint.simulate.pause = function (){
 };
 Paint.Proxy = function(obj) {
   const PaintProxy = new Proxy(Paint, {
-  // Watch function calls
-  apply(target, thisArg, args) {
-    obj.onChange('🎨 Paint called with:', args);
-    const result = target.apply(thisArg, args);
-    obj.onChange('🎨 Paint returned:', result);
-    return result;
-  },
-  
-  // Watch property access
-  get(target, prop) {
-    obj.onChange('👀 Accessing Paint.' + prop);
-    return target[prop];
-  },
-  
-  // Watch property changes
-  set(target, prop, value) {
-    obj.onChange('✏️ Setting Paint.' + prop + ' =', value);
-    target[prop] = value;
-    return true;
-  }
-});
+    get(target, prop) {
+      obj.onChange('👀 Accessing Paint.' + prop);
 
-// Replace original Paint with proxied version
-window.Paint = PaintProxy;
+      // لو property function → رجّعها proxied function
+      if (typeof target[prop] === 'function') {
+        return new Proxy(target[prop], {
+          apply(fn, thisArg, args) {
+            obj.onChange('Paint.' + prop + ' called with:', args);
+            const result = fn.apply(thisArg, args);
+            obj.onChange('Paint.' + prop + ' returned:', result);
+            return result;
+          }
+        });
+      }
 
-console.log("Proxy....");
-};
-window.Paint = Paint;                                               };
-                                            }
-                                            if (prop === 'removeProperty') {
-                                                return function(property) {
-                                                    log(`🗑️ removeProperty: ${property}`);
-                                                    return target.removeProperty(property);
-                                                };
-                                            }
-                                            return target[prop];
-                                        }
-                                    });
-                                    
-                                    // Replace the style object (this is tricky and might not work in all browsers)
-                                    try {
-                                        Object.defineProperty(rule, 'style', {
-                                            value: proxiedStyle,
-                                            writable: false
-                                        });
-                                    } catch (e) {
-                                       // log(`⚠️ Could not proxy rule ${ruleIndex} style`);
-                                    }
-                                }
-                            });
-                            
-                           // log(`✅ Watching stylesheet ${sheetIndex} with ${rules.length} rules`);
-                            
-                        } catch (e) {
-        //                    log(`⚠️ Cannot access stylesheet ${sheetIndex}: ${e.message}`);
-                        }
-                    });
-
-                    // Also monitor dynamic style changes via MutationObserver
-                    
-
-                    this.watchers.add(observer);
-//                    log('🔍 CSS Watcher initialized!');
-                    
-                } catch (error) {
-  //                  log(`❌ Error initializing watcher: ${error.message}`);
-                }
-            },
-            unwatch: function() {
-                this.watchers.forEach(watcher => {
-                    if (watcher.disconnect) watcher.disconnect();
-                });
-                this.watchers.clear();
-                console.log('🛑 CSS Watcher stopped');
-            }
-};
-Paint.restore = function (){
-window.CSSInsertEngine = sheetX;
-window.CSSEngine = document.styleSheets;
-console.log(`All defaults are reset`);
-};
-Paint.simulate = function(obj) {
-	if(simulateState.history.past==""){
-		simulateState.history.past = Paint.getCSS(obj.selector);
-	}
-	if(simulateState.history.future==""){
-		simulateState.history.past = Paint.getCSS(obj.selector+obj.pusedo);
-	}
-	simulateState.obj=obj;
-
-function repeat() {
-  setTimeout(() => {
-    Paint.forceState({
-  	selector:obj.selector,
-	  pusedo:obj.pusedo
-    });
- if (simulateState.Applyed == true && simulateState.current < obj.times) {
-  	setTimeout(function() {
-   	Paint.forceState({
-  	selector:obj.selector,
-	  pusedo:obj.pusedo
-    });
-    		repeat();
-    	},obj.timeout);
-    }else {
-   	Paint.forceState({
-  	selector:obj.selector,
-	  pusedo:obj.pusedo
-    });
-    Paint.getCSSObj(obj.selector).cssText = simulateState.history.past;
-    simulateState.Applyed = false;
+      return target[prop];
+    },
+    set(target, prop, value) {
+      obj.onChange('✏️ Setting Paint.' + prop + ' =', value);
+      target[prop] = value;
+      return true;
     }
-  }, obj.timeout);
-  simulateState.current++;
-}
+  });
 
-repeat();
-	};
-Paint.simulate.continue = function (){
-	simulateState.Applyed = true;
-	Paint.simulate(simulateState.obj);
+  // استبدل النسخة الحالية
+  window.Paint = PaintProxy;
+
+  console.log("Proxy....");
 };
-Paint.simulate.pause = function (){
-	simulateState.Applyed = false;
-	console.log(simulateState.obj);
-	console.log(simulateState.obj.selector);
-};
-window.Paint=Paint;
+window.Paint = Paint;
